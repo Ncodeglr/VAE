@@ -1,0 +1,17 @@
+# Environnements virtuels
+.venv/
+venv/
+env/
+
+# Dossiers de données (Trop lourds pour Git !)
+data/
+runs/
+
+# Fichiers générés par Python et Jupyter
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# Fichiers de poids de l'IA
+*.pth
+*.pt

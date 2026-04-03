@@ -1,0 +1,138 @@
+# Task-specific configuration for Variational Autoencoder Generation
+task: generation
+
+# Data configuration specific to reconstruction
+data:
+  # recompute_statistics: False
+  # shuffle: False
+  recompute_statistics: False
+  shuffle: True
+  batch_size: 16
+  dataset:
+    # name: MNIST
+    # trainpath: ../datasets/MNIST
+    # name: CIFAR10
+    # trainpath: ../datasets/CIFAR10/
+    name: FlatCMRxRecon
+    trainpath: ../datasets/MICCAIChallenge2023/FlatDataset/
+    # name: ALOSDataset
+    # trainpath: ../datasets/SAN_FRANCISCO_ALOS2
+    # patch_size: 64
+    # patch_stride: 64
+    # crop_coordinates:
+    #   end_col: 3200
+    #   end_row: 7500
+    #   start_col: 1000
+    #   start_row: 3000
+    # name: MSTARTargets
+    # trainpath: ../datasets/MSTAR2
+    # name: MSTARClean
+    # trainpath: ../datasets/MSTARClean
+    # name: Bretigny
+    # trainpath: ../datasets/Bretigny
+    # name: Sethi
+    # trainpath: ../datasets/Sethi
+  num_workers: 4
+  test_ratio: 0.1
+  valid_ratio: 0.1
+  transforms:
+    # - name: fftresize
+    #   params:
+    #     size: [16, 16]
+    # - name: centercrop
+    #   params:
+    #     height: 16
+    #     width: 16
+    # - name: clamp
+    #   params:
+    #     max_val: 2.0
+    # - name: logamplitude
+
+    # - name: fft2
+    # - name: normalize 
+
+    - name: fftresize
+      params:
+        size: [32, 32]
+ 
+
+    # - name: fftresize
+    #   params:
+    #     size: [128, 128]
+    # - name: centercrop
+    #   params:
+    #     height: 32
+    #     width: 32
+    # - name: clamp
+    #   params:
+    #     max_val: 5.0
+    # - name: logamplitude
+
+  real_pipeline_type: complex_dual_real
+
+# Model configuration specific to variational autoencoder
+model:
+  activation: ReLU
+  channels_width: 64
+  class: VariationalAutoEncoder
+  layer_mode: real
+  cov_mode: diag
+  sample_gmm: True
+  force_circular: False
+  use_conv_1x1: False
+  standard_reparam: False
+  classified_latent: False
+  decoder_variance:
+    learned_variance: True
+    min_log_sigma: -1.0
+  num_layers: 2
+  num_blocks: 1
+  latent_dim: 48
+  normalization_layer: Null
+  downsampling_layer: Null
+  upsampling_layer: transpose
+  residual: True
+  dropout: 0.1
+  
+  # Projection configuration - choose one of the following:
+  
+  # Option 1: Polynomial projection with custom order
+  # projection_layer: polynomial
+  # projection:
+  #   order: 5  # Default is 3, this creates a 5th order polynomial
+  
+  # Option 2: MLP projection with custom architecture
+  # projection_layer: MLP
+  # projection:
+  #   hidden_sizes: [8, 16, 8]  # Default is [8, 16]
+  #   input_size: 2             # Default is 2
+  #   output_size: 1            # Default is 1
+  
+  # Option 3: Amplitude projection (no additional config needed)
+  projection_layer: amplitude
+
+  gumbel_tau:
+    start_value: 0.1
+    gamma: 0.1
+    start_decay_epoch: 5
+    min_value: 0.00001
+
+evaluation:
+  check_invariance: false  # Toggles circular shift check
+
+# Override wandb project name for latent autoencoder
+# Logging configuration
+logging:
+  logdir: ./logs
+  wandb:
+    entity: complex-gen-ai-sar
+    project: vae_cmrxrecon
+    name: variational_autoencoder
+
+# Loss configuration - using new generic naming
+loss:
+  name: ELBOLoss # Auto-selects ComplexMSELoss or MSELoss based on layer_mode
+  schedule: beta # Options: capacity | freebits | beta
+  beta_max: 0.5
+  # schedule: capacity # Options: capacity | freebits | beta
+  # bpd_target: 0.01
