@@ -17,9 +17,7 @@ def get_final_layer(in_channels: int, out_channels: int, layer_mode: str = "real
     On utilise une convolution 1x1 pour changer la profondeur sans toucher au spatial.
     """
     if is_complex(layer_mode):
-        # Pour le complexe, on utilise la conv 1x1 de torchcvnn
-        return c_nn.Conv2d(in_channels, out_channels, kernel_size=1)
-    
+        return c_nn.Conv2d(in_channels, out_channels, kernel_size=1) # Si complex values, on utilise la Conv 1x1 de torchcvnn
     return nn.Conv2d(in_channels, out_channels, kernel_size=1)
 
 
