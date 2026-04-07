@@ -9,6 +9,7 @@ except ImportError:
     c_nn = None
 
 from .blocks import DoubleConv, Up, get_linear, is_complex  # Import des fichiers du projet
+from .encoder import get_linear
 
 
 def get_final_layer(in_channels: int, out_channels: int, layer_mode: str = "real") -> nn.Module:
@@ -30,7 +31,7 @@ class ConvDecoder(nn.Module):
         model_cfg = cfg["model"]
         
         dataset_name = data_cfg["dataset_name"]
-        in_channels = data_cfg["in_channels"] # Sortie finale du décodeur
+        in_channels = data_cfg["in_channels"] # Sortie finale du décodeur en parntant de nb de cannaux de l'image en input
         image_size = data_cfg["image_size"]
         layer_mode = data_cfg.get("layer_mode", "real")
         
@@ -44,7 +45,6 @@ class ConvDecoder(nn.Module):
         self.flattened_dim = self.final_channels * (self.final_size ** 2)
 
         # --- 3. Passage Latent -> Spatial ---
-        from .encoder import get_linear # Réutilisation de notre routeur
         self.latent_to_features = get_linear(latent_dim, self.flattened_dim, layer_mode)
         self.unflatten = nn.Unflatten(dim=1, unflattened_size=(self.final_channels, self.final_size, self.final_size))
 
@@ -82,7 +82,7 @@ class ConvDecoder(nn.Module):
             self.output_activation = nn.Identity()
 
     def forward(self, z: torch.Tensor) -> torch.Tensor:
-        # Z (Batch, Latent) -> Flat (Batch, 3136)
+        # Z (Batch, Latent = 32 par exemple) -> Flat (Batch, 6272)
         x = self.latent_to_features(z)
         
         # Flat -> Cube (Batch, 128, 7, 7)
