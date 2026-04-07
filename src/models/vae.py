@@ -22,6 +22,7 @@ class VAE(nn.Module):
     def reparameterize(self, mu: torch.Tensor, logvar: torch.Tensor) -> torch.Tensor:
         """
        'Reparameterization Trick' - Permet au gradient de circuler malgré l'échantillonnage aléatoire.
+        z = mu + sigma*std 
         """
         # On calcule l'écart-type : sigma = exp(0.5 * logvar)
         std = torch.exp(0.5 * logvar)
@@ -30,7 +31,7 @@ class VAE(nn.Module):
         eps = torch.randn_like(std)
         
         # On décale et on étire le bruit par mu et std
-        return mu + eps * std
+        return mu + std*eps 
 
     def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """
@@ -54,11 +55,10 @@ class VAE(nn.Module):
     def sample(self, num_samples: int, device: str = "cpu") -> torch.Tensor:
         """
         Génère de nouvelles images à partir de rien (en piochant dans le prior N(0,1)).
+        num_samples : Nombre de nouvelles images qu'on veut générer d'un seul coup
         """
         latent_dim = self.cfg["model"]["latent_dim"]
-        
-        # On pioche des points au hasard dans l'espace latent
-        z = torch.randn(num_samples, latent_dim).to(device)
+        z = torch.randn(num_samples, latent_dim).to(device)  # On pioche des points au hasard dans l'espace latent
         
         # Le décodeur les transforme en images
         return self.decoder(z)

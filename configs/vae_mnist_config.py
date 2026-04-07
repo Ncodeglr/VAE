@@ -7,7 +7,7 @@ sont centralisés ici.
 vae_cfg = {
     # --- Infos Projet ---
     "project_name": "VAE_MNIST_Modular",
-    "nepochs": 10,  # Nombre d'époques pour l'entraînement
+    "nepochs": 20,  # Nombre d'époques pour l'entraînement
     
     # --- Données ---
     "data": {
@@ -29,10 +29,13 @@ vae_cfg = {
         "latent_dim": 32,          
         
         # Le comportement des blocs (tes briques modulaires)
-        "activation": "relu",      # Options: "relu", "leaky_relu", "crelu"...
+        "activation": "leaky_relu",      # Options: "relu", "leaky_relu", "crelu"...
         "normalization": "batch",  # Options: "batch", "ln" (LayerNorm), "none"
         "downsampling": "strided", # Options: "strided", "max", "avg"
         "upsampling": "transpose", # Options: "transpose", "nearest"
+        
+        "residual": False,  # Active les connexions résiduelles dans les DoubleConv
+        
         
         # Paramètres mathématiques du VAE (lus par get_vae_loss)
         "loss_schedule": "beta",   # "beta", "capacity" ou "freebits"

@@ -65,3 +65,39 @@ def plot_latent_space(latents: np.ndarray, labels: np.ndarray, method="pca") -> 
     plt.title(f"Espace Latent du VAE ({method.upper()})")
     plt.grid(True, alpha=0.3)
     return fig
+
+
+def plot_generated_samples(generated_images: np.ndarray, dataset_type: str = "mnist") -> plt.Figure:
+    """
+    Affiche une grille d'images générées par le modèle.
+    
+    Args:
+        generated_images: Un array numpy contenant les images générées.
+        dataset_type: Le type de données ("mnist", "polsar", etc.) pour adapter l'affichage.
+    """
+    num_samples = len(generated_images)
+    grid_size = int(np.ceil(np.sqrt(num_samples)))
+    
+    fig, axes = plt.subplots(grid_size, grid_size, figsize=(grid_size * 2.5, grid_size * 2.5))
+    axes = axes.flatten()
+    
+    for i in range(len(axes)):
+        if i < num_samples:
+            img = generated_images[i]
+            
+            # Gestion de l'affichage selon le dataset (ex: MNIST est en 1 canal)
+            if dataset_type == "mnist" or len(img.shape) == 2 or (len(img.shape) == 3 and img.shape[0] == 1):
+                img = img.squeeze()
+                axes[i].imshow(img, cmap='gray')
+            else:
+                # Si c'est du RGB, s'assurer que les canaux sont à la fin (H, W, C)
+                if len(img.shape) == 3 and img.shape[0] in [3, 4]:
+                    img = np.transpose(img, (1, 2, 0))
+                axes[i].imshow(img)
+                
+        axes[i].axis('off')
+        
+    plt.suptitle("Nouvelles Générations (Échantillonnage z ~ N(0,1))", fontsize=16)
+    plt.tight_layout()
+    
+    return fig

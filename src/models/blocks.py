@@ -64,8 +64,6 @@ def get_normalization(choice: Optional[str], channels: int, size: Optional[int] 
     elif choice == "rms":
         if size is None: raise ValueError("Le paramètre 'size' est requis pour RMSNorm (rms).")
         return c_nn.RMSNorm(size) if complex_mode else nn.RMSNorm(size)
-    
-    # Fallback supplémentaire
     elif choice == "instance":
         return nn.InstanceNorm2d(channels, affine=True) if not complex_mode else c_nn.BatchNorm2d(channels)
     else:
@@ -146,7 +144,7 @@ class DoubleConv(nn.Module):
             self.shortcut = nn.Identity()
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        identity = self.shortcut(x) if self.residual else None
+        identity = self.shortcut(x) if self.residual else None # Sauvegarde de x avant son traitement, shortcut est une petite convolution 1×1. Cette convolution ne change pas l'image, elle augmente mathématiquement le nombre de canaux de 32 à 64 pour que l'addition future soit possible.
         out = self.conv1(x)
         out = self.norm2(self.conv2(out))
         if self.residual:
@@ -163,9 +161,8 @@ class Down(nn.Module):
     """
     def __init__(self, in_channels: int, out_channels: int, downsampling: str = "strided", 
                  activation: str = "relu", normalization: str = "batch", 
-                 size: int = None, layer_mode: str = "real"):
+                 size: int = None, residual: bool = False, layer_mode: str = "real"): 
         super().__init__()
-        
         layers = []
         
         # --- 1. L'étape cruciale : Réduire l'image par 2 ---
@@ -188,6 +185,7 @@ class Down(nn.Module):
                 activation=activation,
                 normalization=normalization,
                 size=size // 2 if size else None, # On prévient que la taille a été divisée
+                residual=residual,
                 layer_mode=layer_mode
             )
         )
@@ -214,7 +212,7 @@ class Up(nn.Module):
             
         conv_in_channels = in_channels if use_skip else in_channels // 2
         
-        # Note: Si on utilise LayerNorm, la 'size' donnée à la DoubleConv suivante est doublée
+        # Si on utilise LayerNorm, la 'size' donnée à la DoubleConv suivante est doublée
         next_size = size * 2 if size is not None else None
         self.conv = DoubleConv(conv_in_channels, out_channels, activation, normalization, next_size, residual, layer_mode)
 

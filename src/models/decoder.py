@@ -71,7 +71,7 @@ class ConvDecoder(nn.Module):
 
         # --- 5. Tête de sortie finale ---
         # On réduit les derniers filtres (ex: 32) vers le nombre de canaux image (ex: 1)
-        self.final_projection = get_final_layer(reversed_channels[-1], in_channels, layer_mode)
+        self.final_projection = get_final_layer(reversed_channels[-1], in_channels, layer_mode) #Cela permet à la sortie du VAE d'avoir des images dont les dimensions du tenseur est égale à ceux des images d'entrées
         
         # --- 6. Activation de sortie conditionnelle ---
         if dataset_name.upper() == "MNIST":

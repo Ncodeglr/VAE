@@ -31,6 +31,7 @@ class ConvEncoder(nn.Module):
         activation = cfg["model"]["activation"]
         normalization = cfg["model"]["normalization"]
         downsampling = cfg["model"]["downsampling"]
+        use_residual = cfg["model"].get("residual", False)
         latent_dim = cfg["model"]["latent_dim"]
 
         layers = []
@@ -43,7 +44,8 @@ class ConvEncoder(nn.Module):
                 out_channels=channels[0],  
                 activation=activation[0], 
                 normalization=normalization[0], 
-                size=current_size, 
+                size=current_size,
+                residual=use_residual,
                 layer_mode=layer_mode
             )
         )
@@ -61,6 +63,7 @@ class ConvEncoder(nn.Module):
                     activation=activation[i + 1],      # L'activation spécifique
                     normalization=normalization[i + 1],# La normalisation spécifique
                     size=current_size, 
+                    residual=use_residual,
                     layer_mode=layer_mode
                 )
             )
