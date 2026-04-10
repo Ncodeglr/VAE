@@ -1,13 +1,7 @@
 import torch
 import torch.nn as nn
 from typing import Optional
-
-# Importation de la librairie complexe torchcvnn
-try:
-    import torchcvnn.nn.modules as c_nn
-except ImportError:
-    c_nn = None
-
+import torchcvnn.nn as c_nn
 from .blocks import DoubleConv, Up, is_complex 
 from .encoder import get_linear                 
 

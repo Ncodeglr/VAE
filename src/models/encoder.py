@@ -1,14 +1,8 @@
 import torch
 import torch.nn as nn
 from typing import Tuple, Optional
-
 from .blocks import DoubleConv, Down, is_complex  # Import des fichiers du projet
-
-# Importation de la librairie complexe torchcvnn
-try:
-    import torchcvnn.nn as c_nn
-except ImportError:
-    c_nn = None
+import torchcvnn.nn as c_nn
 
 
 def get_linear(in_features: int, out_features: int, layer_mode: str = "real") -> nn.Module:

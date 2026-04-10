@@ -28,7 +28,7 @@ class VAE(nn.Module):
         S'adapte automatiquement si la couche est complexe ou réelle.
         """
         init_type = self.cfg["model"].get("weight_init", "kaiming_normal").lower()
-        print(f"⚖️ Initialisation des poids du modèle : {init_type}")
+        print(f"Initialisation des poids du modèle : {init_type}")
         
         for m in self.modules():
             # On cible les convolutions, convolutions transposées et les couches linéaires

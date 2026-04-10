@@ -4,12 +4,7 @@ import torch.nn.functional as F
 from typing import Optional
 import os
 import sys
-
-# Importation de la librairie complexe torchcvnn
-try:
-    import torchcvnn.nn.modules as c_nn
-except ImportError:
-    c_nn = None
+import torchcvnn.nn as c_nn
 
 
 
@@ -21,14 +16,13 @@ def is_complex(layer_mode: str) -> bool:
 
 def get_conv2d(in_channels: int, out_channels: int, kernel_size: int, stride: int = 1, padding: int = 0, bias: bool = True, layer_mode: str = "real") -> nn.Module:
     if is_complex(layer_mode):
-        # PyTorch natif gère la convolution complexe grâce au dtype !
-        return nn.Conv2d(in_channels, out_channels, kernel_size, stride=stride, padding=padding, bias=bias, dtype=torch.complex64)
-    return nn.Conv2d(in_channels, out_channels, kernel_size, stride=stride, padding=padding, bias=bias, dtype=torch.float32)
+        return nn.Conv2d(in_channels, out_channels, kernel_size, stride=stride, padding=padding, bias=bias, dtype=torch.complex64) # Convolution complexe 
+    return nn.Conv2d(in_channels, out_channels, kernel_size, stride=stride, padding=padding, bias=bias, dtype=torch.float32) # Convolution réel
 
 def get_conv_transpose2d(in_channels: int, out_channels: int, kernel_size: int, stride: int = 1, layer_mode: str = "real") -> nn.Module:
     if is_complex(layer_mode):
-        return nn.ConvTranspose2d(in_channels, out_channels, kernel_size, stride=stride, dtype=torch.complex64)
-    return nn.ConvTranspose2d(in_channels, out_channels, kernel_size, stride=stride, dtype=torch.float32)
+        return nn.ConvTranspose2d(in_channels, out_channels, kernel_size, stride=stride, dtype=torch.complex64) # Convolution Transpose complexe 
+    return nn.ConvTranspose2d(in_channels, out_channels, kernel_size, stride=stride, dtype=torch.float32) # Convolution Transpose réel
 
 def get_linear(in_features: int, out_features: int, layer_mode: str = "real") -> nn.Module:
     if is_complex(layer_mode):
@@ -41,7 +35,7 @@ def get_activation(choice: Optional[str], layer_mode: str = "real") -> nn.Module
         return nn.Identity()
     
     choice = choice.lower()
-    complex_mode = is_complex(layer_mode)
+    complex_mode = is_complex(layer_mode) 
 
     if complex_mode:
         if choice in ["relu", "crelu"]: return c_nn.CReLU()
@@ -167,7 +161,7 @@ class Down(nn.Module):
             layers.append(nn.MaxPool2d(2))
         elif downsampling == "avg":
             layers.append(nn.AvgPool2d(2))
-        else: 
+        elif downsampling == "strided": 
             # Mode "strided" (Par défaut) : La convolution saute 1 pixel sur 2 (stride=2)
             layers.append(
                 get_conv2d(in_channels, in_channels, kernel_size=3, stride=2, padding=1, bias=True, layer_mode=layer_mode)

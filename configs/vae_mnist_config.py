@@ -7,7 +7,7 @@ sont centralisés ici.
 vae_cfg = {
     # --- Infos Projet ---
     "project_name": "VAE_MNIST_Modular",
-    "nepochs": 15,  # Nombre d'époques pour l'entraînement
+    "nepochs": 30,  # Nombre d'époques pour l'entraînement
     
     # --- Données ---
     "data": {
@@ -24,11 +24,11 @@ vae_cfg = {
         # Géométrie : Le nombre d'étapes définit le nombre de down/up sampling.
         "channels": [32, 64, 128], # Ici : Entrée(1) -> 32 -> 64 -> 128. (Divise l'image par 2 à chaque étape)
         
-        "latent_dim": 64, # Le "goulot d'étranglement" (la taille du résumé Z)
+        "latent_dim": 32, # Le "goulot d'étranglement" (la taille du résumé Z)
 
-        "widely_linear": True,  # True = WL-CVAE (Ellipse), False = CVAE standard (Cercle)      
+        "widely_linear": False,  # True = WL-CVAE (Ellipse), False = CVAE standard (Cercle)      
         
-        "weight_init": "kaiminguniform",  # Options: "xavier_normal", "xavier_uniform", "kaiming_normal", "kaiming_uniform", "rayleigh"
+        "weight_init": "xavier_uniform",  # Options: "xavier_normal", "xavier_uniform", "kaiming_normal", "kaiming_uniform", "rayleigh"
         
         #---------------------------------Le comportement des blocs (les Briques Modulaires pour chaque layer)------------------------------------------#
         # --- ENCODEUR ---
@@ -48,7 +48,7 @@ vae_cfg = {
         # Paramètres mathématiques du VAE (lus par get_vae_loss)
         "loss_schedule": "beta",   # "beta", "capacity" ou "freebits"
         "cov_mode": "diag",        # "diag" (Diagonale standard) ou "full"
-        "beta": 1.0,               # Beta-VAE : Poids de la KL Divergence (1.0 = standard)
+        "beta": 1,               # Beta-VAE : Poids de la KL Divergence (1.0 = standard)
         
         # Paramètres avancés de cvnn pour la reconstruction
         "decoder_variance": {
