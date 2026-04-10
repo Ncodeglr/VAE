@@ -7,32 +7,40 @@ sont centralisés ici.
 vae_cfg = {
     # --- Infos Projet ---
     "project_name": "VAE_MNIST_Modular",
-    "nepochs": 20,  # Nombre d'époques pour l'entraînement
+    "nepochs": 15,  # Nombre d'époques pour l'entraînement
     
     # --- Données ---
     "data": {
-        "dataset_name": "MNIST",
+        "dataset_name": "COMPLEXMNIST",
         "batch_size": 64,
         "num_workers": 2,         # Nombre de cœurs CPU pour charger les images
         "data_path": "./data",    # Dossier où MNIST sera téléchargé
         "valid_ratio": 0.1,       # 10% des données réservées pour la validation
-        "layer_mode": "real",     # "real" (MNIST) ou "complex" (Radar)
+        "layer_mode": "complex",     # "real" ou "complex" 
     },
     
     # --- Architecture du Modèle ---
     "model": {
         # Géométrie : Le nombre d'étapes définit le nombre de down/up sampling.
-        # Ici : Entrée(1) -> 32 -> 64 -> 128. (Divise l'image par 2 à chaque étape)
-        "channels": [32, 64, 128], 
+        "channels": [32, 64, 128], # Ici : Entrée(1) -> 32 -> 64 -> 128. (Divise l'image par 2 à chaque étape)
         
-        # Le "goulot d'étranglement" (la taille du résumé Z)
-        "latent_dim": 32,          
+        "latent_dim": 64, # Le "goulot d'étranglement" (la taille du résumé Z)
+
+        "widely_linear": True,  # True = WL-CVAE (Ellipse), False = CVAE standard (Cercle)      
         
-        # Le comportement des blocs (tes briques modulaires)
-        "activation": "leaky_relu",      # Options: "relu", "leaky_relu", "crelu"...
-        "normalization": "batch",  # Options: "batch", "ln" (LayerNorm), "none"
-        "downsampling": "strided", # Options: "strided", "max", "avg"
-        "upsampling": "transpose", # Options: "transpose", "nearest"
+        "weight_init": "kaiminguniform",  # Options: "xavier_normal", "xavier_uniform", "kaiming_normal", "kaiming_uniform", "rayleigh"
+        
+        #---------------------------------Le comportement des blocs (les Briques Modulaires pour chaque layer)------------------------------------------#
+        # --- ENCODEUR ---
+        "encoder_activation": ["crelu", "crelu", "crelu"],  
+        "encoder_normalization": ["batch", "batch", "none"],  
+        "encoder_downsampling": ["strided", "strided"], 
+        
+        # --- DÉCODEUR ---
+        "decoder_activation": ["crelu", "crelu", "crelu"], 
+        "decoder_normalization": ["batch", "batch", "none"],
+        "decoder_upsampling": ["transpose", "transpose"],
+        #-----------------------------------------------------------------------------------------------------------------------------#
         
         "residual": False,  # Active les connexions résiduelles dans les DoubleConv
         

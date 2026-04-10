@@ -484,6 +484,7 @@ def get_vae_loss(cfg: Dict[str, Any]) -> nn.Module:
             schedule=schedule,
             cov_mode=cov_mode,
             beta_max=beta_max,
+            standard_reparam=False  # <--- MODIFICATION ICI : On utilise le mode "W et V"
         )
     else:
         return ELBOLoss(

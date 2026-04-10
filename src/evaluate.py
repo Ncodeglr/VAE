@@ -1,13 +1,18 @@
 import torch
 import numpy as np
-import matplotlib.pyplot as plt  # ⬅️ NOUVEAU : Indispensable pour gérer les figures
+import matplotlib.pyplot as plt
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score
 from pathlib import Path
 
 from src.models.vae import VAE
 from src.data.loader import get_dataloaders
-from src.utils.visualize import plot_reconstructions, plot_latent_space, plot_generated_samples
+from src.utils.visualize import (
+    plot_reconstructions, 
+    plot_latent_space, 
+    plot_generated_samples,
+    plot_complex_reconstructions # <-- Le nouvel affichage Amplitude/Phase !
+)
 from configs.vae_mnist_config import vae_cfg
 
 def extract_latents(model: torch.nn.Module, loader: torch.utils.data.DataLoader, device: torch.device):
@@ -23,7 +28,17 @@ def extract_latents(model: torch.nn.Module, loader: torch.utils.data.DataLoader,
             # Passage dans l'encodeur uniquement
             mu, _ = model.encoder(x)
             
-            latents_list.append(mu.cpu().numpy())
+            # --- Traitement des latents complexes ---
+            if mu.is_complex():
+                # On sépare la partie réelle et imaginaire
+                mu_real = mu.real
+                mu_imag = mu.imag
+                # On les concatène côte à côte (ex: un vecteur de 32 devient 64)
+                mu_processed = torch.cat([mu_real, mu_imag], dim=1)
+                latents_list.append(mu_processed.cpu().numpy())
+            else:
+                latents_list.append(mu.cpu().numpy())
+                
             labels_list.append(y.cpu().numpy())
             
     X = np.concatenate(latents_list, axis=0)
@@ -41,6 +56,8 @@ def compute_linear_probing(X_train, y_train, X_test, y_test) -> float:
 def main():
     cfg = vae_cfg
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    dataset_name = cfg["data"]["dataset_name"]
+    layer_mode = cfg["data"].get("layer_mode", "real")
     
     # --- Trouver le dernier run ---
     base_dir = Path("./runs") / cfg["project_name"]
@@ -67,20 +84,33 @@ def main():
     else:
         print("⚠️ Aucun modèle entraîné trouvé. L'évaluation se fera sur des poids aléatoires.")
 
+    # ---------------------------------------------------------
     # 1. Qualité de Reconstruction
-    print("\n🖼️ Génération des reconstructions...")
+    # ---------------------------------------------------------
+    print("\n🖼️ Génération des reconstructions spatiales...")
     x_test, _ = next(iter(test_loader))
     x_test = x_test.to(device)
     with torch.no_grad():
-        recons, _, _ = model(x_test)
+        recons = model(x_test)[0]
     
-    fig_recons = plot_reconstructions(x_test, recons, num_samples=8)
+    fig_recons = plot_reconstructions(x_test, recons, dataset_type=dataset_name, num_samples=8)
     recons_path = logdir / "reconstructions.png"
-    fig_recons.savefig(recons_path, bbox_inches='tight')
-    plt.close(fig_recons)  # ⬅️ NOUVEAU : On ferme la figure pour vider la RAM
+    fig_recons.savefig(recons_path, bbox_inches='tight', dpi=150)
+    plt.close(fig_recons) 
     print(f"📁 Reconstructions sauvegardées ici : {recons_path.resolve()}")
     
+    # --- NOUVEAU : Affichage Expert si le modèle est complexe ---
+    if layer_mode == "complex":
+        print("🌌 Génération du tableau de bord Complexe (Amplitude & Phase)...")
+        fig_complex = plot_complex_reconstructions(x_test, recons, num_samples=8)
+        complex_path = logdir / "reconstructions_complexes.png"
+        fig_complex.savefig(complex_path, bbox_inches='tight', dpi=150)
+        plt.close(fig_complex)
+        print(f"📁 Tableau de bord Complexe sauvegardé ici : {complex_path.resolve()}")
+
+    # ---------------------------------------------------------
     # 2. Qualité de l'Espace Latent (Linear Probing)
+    # ---------------------------------------------------------
     print("\n🔍 Extraction de l'espace latent...")
     X_train, y_train = extract_latents(model, train_loader, device)
     X_test, y_test = extract_latents(model, test_loader, device)
@@ -88,36 +118,38 @@ def main():
     acc = compute_linear_probing(X_train, y_train, X_test, y_test)
     print(f"✅ Accuracy du Linear Probing (Qualité Latente) : {acc * 100:.2f}%")
     
+    # ---------------------------------------------------------
     # 3. Visualisation de l'Espace Latent (PCA)
+    # ---------------------------------------------------------
     fig_latent = plot_latent_space(X_test, y_test, method="pca")
     latent_path = logdir / "latent_space_pca.png"
-    fig_latent.savefig(latent_path, bbox_inches='tight')
-    plt.close(fig_latent)  # ⬅️ NOUVEAU : On libère la RAM
+    fig_latent.savefig(latent_path, bbox_inches='tight', dpi=150)
+    plt.close(fig_latent) 
     print(f"📁 Espace Latent sauvegardé ici : {latent_path.resolve()}")
 
+# ---------------------------------------------------------
     # 4. Génération pure (L'imagination du modèle)
+    # ---------------------------------------------------------
     print("\n✨ Création de nouvelles images inédites...")
     
-    # ÉTAPE A : On demande au modèle de générer les images (Tenseurs PyTorch)
     with torch.no_grad():
-        raw_generated = model.sample(num_samples=16, device=device)
-        # On les bascule sur le CPU et on les convertit en tableau NumPy
-        generated_images_np = raw_generated.cpu().numpy()
+        # L'ajout est ici : on génère sur GPU, puis on ramène de force sur CPU !
+        generated_tensors = model.sample(num_samples=16, device=device).cpu()
         
-    # ÉTAPE B : On donne ces images Numpy à ta nouvelle fonction d'affichage
     fig_generations = plot_generated_samples(
-        generated_images=generated_images_np, 
-        dataset_type="mnist"
+        generated_images=generated_tensors, 
+        dataset_type=dataset_name
     )
     
     generations_path = logdir / "generations.png"
     fig_generations.savefig(generations_path, bbox_inches='tight', dpi=300)
     print(f"📁 Nouvelles générations sauvegardées ici : {generations_path.resolve()}")
     
+    # Affiche la dernière figure sur ton écran si tu le souhaites
     plt.show() 
     plt.close(fig_generations)
     
-    print("\n🎉 Évaluation terminée !")
+    print("\n🎉 Évaluation terminée avec succès !")
 
 if __name__ == "__main__":
     main()

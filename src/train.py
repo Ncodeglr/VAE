@@ -59,7 +59,7 @@ def train_one_epoch(
 
         # 2. Forward & Backward
         optimizer.zero_grad()
-        outputs = model(inputs) # outputs = (recons, mu, logvar)
+        outputs = model(inputs) # outputs = (recons, mu, logvar) en mode Réel OU (recons, mu, var, delta, log_sigma2_dec) en mode Complexe
         
         # Le loss_fn renvoie un tuple (loss_scalaire, dict_metriques)
         loss_output = loss_fn(outputs, inputs)

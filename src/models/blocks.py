@@ -2,12 +2,16 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from typing import Optional
+import os
+import sys
 
 # Importation de la librairie complexe torchcvnn
 try:
     import torchcvnn.nn.modules as c_nn
 except ImportError:
     c_nn = None
+
+
 
 # --- 1. FONCTIONS UTILITAIRES DE ROUTAGE ET D'ENRICHISSEMENT ---
 
@@ -17,13 +21,19 @@ def is_complex(layer_mode: str) -> bool:
 
 def get_conv2d(in_channels: int, out_channels: int, kernel_size: int, stride: int = 1, padding: int = 0, bias: bool = True, layer_mode: str = "real") -> nn.Module:
     if is_complex(layer_mode):
-        return c_nn.Conv2d(in_channels, out_channels, kernel_size, stride=stride, padding=padding, bias=bias)
-    return nn.Conv2d(in_channels, out_channels, kernel_size, stride=stride, padding=padding, bias=bias)
+        # PyTorch natif gère la convolution complexe grâce au dtype !
+        return nn.Conv2d(in_channels, out_channels, kernel_size, stride=stride, padding=padding, bias=bias, dtype=torch.complex64)
+    return nn.Conv2d(in_channels, out_channels, kernel_size, stride=stride, padding=padding, bias=bias, dtype=torch.float32)
 
 def get_conv_transpose2d(in_channels: int, out_channels: int, kernel_size: int, stride: int = 1, layer_mode: str = "real") -> nn.Module:
     if is_complex(layer_mode):
-        return c_nn.ConvTranspose2d(in_channels, out_channels, kernel_size, stride=stride)
-    return nn.ConvTranspose2d(in_channels, out_channels, kernel_size, stride=stride)
+        return nn.ConvTranspose2d(in_channels, out_channels, kernel_size, stride=stride, dtype=torch.complex64)
+    return nn.ConvTranspose2d(in_channels, out_channels, kernel_size, stride=stride, dtype=torch.float32)
+
+def get_linear(in_features: int, out_features: int, layer_mode: str = "real") -> nn.Module:
+    if is_complex(layer_mode):
+        return nn.Linear(in_features, out_features, dtype=torch.complex64)
+    return nn.Linear(in_features, out_features, dtype=torch.float32)
 
 def get_activation(choice: Optional[str], layer_mode: str = "real") -> nn.Module:
     """Route vers l'activation demandée avec les ajouts complexes spécifiques."""
@@ -96,19 +106,6 @@ def concat(x1: torch.Tensor, x2: Optional[torch.Tensor] = None) -> torch.Tensor:
 
 
 
-def get_linear(in_features: int, out_features: int, layer_mode: str = "real") -> nn.Module:
-    """Route vers une couche linéaire standard ou complexe."""
-    if is_complex(layer_mode):
-        try:
-            import torchcvnn.nn.modules as c_nn
-            return c_nn.Linear(in_features, out_features)
-        except ImportError:
-            pass # Si cvnn n'est pas installé, on fallback sur du réel ou on lève une erreur
-    return nn.Linear(in_features, out_features)
-
-
-
-
 # --- 2. LES BRIQUES DE BASE ---
 
 class SingleConv(nn.Module):
@@ -172,10 +169,9 @@ class Down(nn.Module):
             layers.append(nn.AvgPool2d(2))
         else: 
             # Mode "strided" (Par défaut) : La convolution saute 1 pixel sur 2 (stride=2)
-            if is_complex(layer_mode):
-                layers.append(c_nn.Conv2d(in_channels, in_channels, kernel_size=3, stride=2, padding=1))
-            else:
-                layers.append(nn.Conv2d(in_channels, in_channels, kernel_size=3, stride=2, padding=1))
+            layers.append(
+                get_conv2d(in_channels, in_channels, kernel_size=3, stride=2, padding=1, bias=True, layer_mode=layer_mode)
+            )
                 
         # --- 2. L'étape de traitement : Double Convolution ---
         layers.append(
@@ -200,13 +196,18 @@ class Up(nn.Module):
         super().__init__()
         self.use_skip = use_skip
         
-        if upsampling == "transpose": #Division du nombre de cannaux par 2 
+        # --- NOUVEAU : Gestion de tous les modes d'upsampling ---
+        if upsampling == "transpose": 
+            # Division du nombre de canaux par 2 via une convolution transposée
             self.up = get_conv_transpose2d(in_channels, in_channels // 2, kernel_size=2, stride=2, layer_mode=layer_mode)
+            
         elif upsampling == "interpolate":
+            # Agrandissement bilinéaire + Conv 1x1
             self.up = nn.Sequential(
                 nn.Upsample(scale_factor=2, mode="bilinear", align_corners=True),
                 get_conv2d(in_channels, in_channels // 2, kernel_size=1, layer_mode=layer_mode)
             )
+            
         else:
             raise ValueError(f"Upsampling non supporté : {upsampling}")
             
